@@ -1,6 +1,6 @@
 #include <SFML/Graphics.hpp>
 #include"BoltzmannSimulation.h"
-int const K = 50;
+int const K = 30;
 int const H = 9 * K, W = 16 * K;
 
 

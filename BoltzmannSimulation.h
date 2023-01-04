@@ -22,7 +22,7 @@ class BoltzmannSumulation
 private:
 	const int Ny;
 	const int Nx;
-	const double TAU = 0.8;
+	const double TAU = 0.6;
 	float *table;
 	float *tmp_table;
 	float *rho;
@@ -43,18 +43,19 @@ private:
 		std::cout << "\n";
 		for (int i = 0; i < NL * Ny * Nx; i++)
 		{
-			table[i] = 1.0 + (abs(rand()) % 1000) / 5000.0; 
+			table[i] = 1.0 + (abs(rand()) % 1000) / 2000.0; 
 			int coor = i % (Nx * Ny);
 			int y = coor / Nx;
 			int x = coor % Nx;
-			if (i / (Nx * Ny) == 3)
+			if (i / (Nx * Ny) == 7)
 			{
 				table[i] = 2.3;
 			}
 
-			int cylX = std::min(x - Nx / 4, x - 50 - 70 - 100);
+			int cylX = x - Nx / 3;
 			int cylY = y - Ny / 2;
-			if (cylX * cylX + cylY * cylY <= 70 * 70)
+			int R = Ny / 8;
+			if (cylX * cylX + cylY * cylY <= R * R)
 			{
 				isBondary[coor] = 1;
 			}
@@ -65,7 +66,7 @@ private:
 	}
 	void update_stream()
 	{
-#pragma omp parallel for num_threads(NUM_THREADS)
+		#pragma omp parallel for num_threads(NUM_THREADS)
 		for (int i = 0; i < NL * Ny * Nx; i++)
 		{
 			int l = i / (Ny * Nx);
@@ -85,22 +86,25 @@ private:
 		memset(ux, 0, Nx * Ny * sizeof(float));
 		memset(uy, 0, Nx * Ny * sizeof(float));
 	
-//#pragma omp parallel for  num_threads(NUM_THREADS)
-		for (int i = 0; i < NL * Ny * Nx; i++)
+		for (int l = 0; l < NL; l++)
 		{
-			int l = i / (Ny * Nx);
-			int coor = i % (Ny * Nx);
-			rho[coor] = rho[coor] + table[i];
-			ux[coor] = ux[coor] + dxs[l] * table[i];
-			uy[coor] = uy[coor] + dys[l] * table[i];
-			if (isBondary[coor])
+			#pragma omp parallel for  num_threads(NUM_THREADS)
+			for (int coor = 0; coor < Ny * Nx; coor++)
 			{
-				table[i] = table[invert[l] * Ny * Nx + coor];
+				int i = l * Nx * Ny + coor;
+				rho[coor] = rho[coor] + table[i];
+				ux[coor] = ux[coor] + dxs[l] * table[i];
+				uy[coor] = uy[coor] + dys[l] * table[i];
+				if (isBondary[coor])
+				{
+					table[i] = table[invert[l] * Ny * Nx + coor];
+				}
 			}
 		}
+		
 
 		max_speed = std::sqrt(ux[0] * ux[0] + uy[0] * uy[0]);
-#pragma omp parallel for num_threads(NUM_THREADS)
+		#pragma omp parallel for num_threads(NUM_THREADS)
 		for (int i = 0; i < Nx * Ny; i++)
 		{
 			ux[i] /= rho[i];
@@ -113,7 +117,7 @@ private:
 			}
 		}
 
-#pragma omp parallel for num_threads(NUM_THREADS)
+		#pragma omp parallel for num_threads(NUM_THREADS)
 		for (int i = 0; i < NL * Ny * Nx; i++)
 		{
 			int l = i / (Ny * Nx);
@@ -168,12 +172,12 @@ public:
 	{
 		if(max_speed > 1.31)
 		std::cout << max_speed << "\n";
-#pragma omp parallel for num_threads(NUM_THREADS)
+		#pragma omp parallel for num_threads(NUM_THREADS)
 		for (int i = 0; i < Nx * Ny; i++)
 		{
 			double y = uy[i];
 			double x = ux[i];
-			double speed = std::sqrt(x * x + y * y) * 195.0;
+			double speed = std::sqrt(x * x + y * y) * 700.0;
 			speed = 255 - std::pow(255.0, (255.0-speed) / 255.0);
 			int r = speed;
 			int g = speed;
