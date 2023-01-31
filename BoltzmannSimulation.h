@@ -43,7 +43,7 @@ private:
 		std::cout << "\n";
 		for (int i = 0; i < NL * Ny * Nx; i++)
 		{
-			table[i] = 1.0 + (abs(rand()) % 1000) / 2000.0; 
+			table[i] = 1.0 + (abs(rand()) % 1000) / 5000.0; 
 			int coor = i % (Nx * Ny);
 			int y = coor / Nx;
 			int x = coor % Nx;
@@ -177,7 +177,7 @@ public:
 		{
 			double y = uy[i];
 			double x = ux[i];
-			double speed = std::sqrt(x * x + y * y) * 700.0;
+			double speed = std::sqrt(x * x + y * y) * 300.0;
 			speed = 255 - std::pow(255.0, (255.0-speed) / 255.0);
 			int r = speed;
 			int g = speed;
