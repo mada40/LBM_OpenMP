@@ -7,6 +7,12 @@
 #include <cmath>
 #include "omp.h"
 
+template<class T> 
+inline T clamp(T x, T min, T max)
+{
+	return std::max(min, std::min(x, max));
+}
+
 const int NUM_THREADS = 8;
 
 const int NL = 9;
@@ -22,9 +28,9 @@ class BoltzmannSumulation
 private:
 	const int Ny;
 	const int Nx;
-	const double TAU = 0.6;
-	float *table;
-	float *tmp_table;
+	const double TAU = 0.7;
+	float *new_table;
+	float *cur_table;
 	float *rho;
 	float* ux;
 	float* uy;
@@ -43,18 +49,19 @@ private:
 		std::cout << "\n";
 		for (int i = 0; i < NL * Ny * Nx; i++)
 		{
-			table[i] = 1.0 + (abs(rand()) % 1000) / 5000.0; 
+			cur_table[i] = 1.0 + (abs(rand()) % 1000) / 10000.0; 
+			cur_table[i] = 1.0;
 			int coor = i % (Nx * Ny);
 			int y = coor / Nx;
 			int x = coor % Nx;
-			if (i / (Nx * Ny) == 7)
+			if (i / (Nx * Ny) == 3)
 			{
-				table[i] = 2.3;
+				cur_table[i] = 2.3;
 			}
 
-			int cylX = x - Nx / 3;
+			int cylX = x - Nx* 2 / 3;
 			int cylY = y - Ny / 2;
-			int R = Ny / 8;
+			int R = Ny / 10;
 			if (cylX * cylX + cylY * cylY <= R * R)
 			{
 				isBondary[coor] = 1;
@@ -75,10 +82,10 @@ private:
 			int x = coor % Nx;
 			int new_y = (y + dys[l] + Ny) % Ny;
 			int new_x = (x + dxs[l] + Nx) % Nx;
-			tmp_table[i] = table[l * (Ny * Nx) + new_y * Nx + new_x];
+			new_table[i] = cur_table[l * (Ny * Nx) + new_y * Nx + new_x];
 		}
 
-		std::swap(tmp_table, table);	
+		//std::swap(tmp_table, table);	
 	}
 	void update_collide()
 	{
@@ -92,12 +99,12 @@ private:
 			for (int coor = 0; coor < Ny * Nx; coor++)
 			{
 				int i = l * Nx * Ny + coor;
-				rho[coor] = rho[coor] + table[i];
-				ux[coor] = ux[coor] + dxs[l] * table[i];
-				uy[coor] = uy[coor] + dys[l] * table[i];
+				rho[coor] = rho[coor] + cur_table[i];
+				ux[coor] = ux[coor] + dxs[l] * cur_table[i];
+				uy[coor] = uy[coor] + dys[l] * cur_table[i];
 				if (isBondary[coor])
 				{
-					table[i] = table[invert[l] * Ny * Nx + coor];
+					cur_table[i] = cur_table[invert[l] * Ny * Nx + coor];
 				}
 			}
 		}
@@ -125,15 +132,15 @@ private:
 			float tmp = dxs[l] * ux[coor] + dys[l] * uy[coor];
 			float sqU = ux[coor] * ux[coor] + uy[coor] * uy[coor];
 			double Feq = rho[coor] * weights[l] * (1.0 + 3.0 * tmp + 4.5 * tmp * tmp - 1.5 * sqU);
-			table[i] += -(table[i] - Feq) / TAU;
+			cur_table[i] = cur_table[i] - (cur_table[i] - Feq) / TAU;
 		}
 	}
 
 public:
 	BoltzmannSumulation(const BoltzmannSumulation& bs) : Nx(bs.Nx), Ny(bs.Ny)
 	{
-		table = new float[NL * Ny * Nx];
-		tmp_table = new float[NL * Ny * Nx];
+		new_table = new float[NL * Ny * Nx];
+		cur_table = new float[NL * Ny * Nx];
 		rho = new float[Ny * Nx];
 		ux = new float[Ny * Nx];
 		uy = new float[Ny * Nx];
@@ -143,8 +150,8 @@ public:
 
 	BoltzmannSumulation(int _Nx, int _Ny) : Nx(_Nx), Ny(_Ny)
 	{
-		table = new float[NL * Ny * Nx];
-		tmp_table = new float[NL * Ny * Nx];
+		new_table = new float[NL * Ny * Nx];
+		cur_table = new float[NL * Ny * Nx];
 		rho = new float[Ny * Nx];
 		ux = new float[Ny * Nx];
 		uy = new float[Ny * Nx];
@@ -154,8 +161,8 @@ public:
 
 	~BoltzmannSumulation()
 	{
-		if (tmp_table) delete[] tmp_table;
-		if (table) delete[] table;
+		if (cur_table) delete[] cur_table;
+		if (new_table) delete[] new_table;
 		if (rho) delete[] rho;
 		if (ux) delete[] ux;
 		if (uy) delete[] uy;
@@ -164,24 +171,26 @@ public:
 
 	void update()
 	{
-		update_stream();
 		update_collide();
+		update_stream();
+		std::swap(cur_table, new_table);
 	}
+
 
 	void draw(sf::Uint8* pixels)
 	{
-		if(max_speed > 1.31)
-		std::cout << max_speed << "\n";
 		#pragma omp parallel for num_threads(NUM_THREADS)
 		for (int i = 0; i < Nx * Ny; i++)
 		{
 			double y = uy[i];
 			double x = ux[i];
-			double speed = std::sqrt(x * x + y * y) * 300.0;
-			speed = 255 - std::pow(255.0, (255.0-speed) / 255.0);
-			int r = speed;
-			int g = speed;
-			int b = 255 - speed/2;
+			double speed = std::sqrt(x * x + y * y) * 1250.0;
+			int r = -speed * (speed - 384.0) / 128.0;
+			int g = -speed * (speed - 256.0) / 64.0;
+			int b = -(speed - 256.0) * (speed + 128.0) / 128.0;
+			r = clamp(r, 0, 255);
+			g = clamp(g, 0, 255);
+			b = clamp(b, 0, 255);
 			/*r*/pixels[i * 4 + 0] = r;
 			/*g*/pixels[i * 4 + 1] = g;
 			/*b*/pixels[i * 4 + 2] = b;
