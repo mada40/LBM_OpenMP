@@ -1,13 +1,13 @@
 #include <SFML/Graphics.hpp>
 #include"BoltzmannSimulation.h"
-int const K = 30;
+int const K = 100;
 int const H = 9 * K, W = 16 * K;
 
 
 int main()
 {
     sf::RenderWindow window(sf::VideoMode(W, H), "SFML works!");
-    window.setFramerateLimit(60);
+    //window.setFramerateLimit(60);
     sf::Clock clock;
     float lastTime = 0;
 
@@ -29,11 +29,14 @@ int main()
         }
 
         bs.update();
-        bs.draw(pixels);
+        if (cnt % 1 == 0)
+        {
 
-        texture.update(pixels);
-        window.draw(sprite);
-        window.display();
+            bs.draw(pixels);
+            texture.update(pixels);
+            window.draw(sprite);
+            window.display();
+        }
 
         float currentTime = clock.getElapsedTime().asMilliseconds();
         float deltatime = (currentTime - lastTime);
