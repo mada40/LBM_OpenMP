@@ -42,16 +42,14 @@ private:
 	
 
 	BoltzmannSumulation& operator = (const BoltzmannSumulation& other);
-	BoltzmannSumulation(const BoltzmannSumulation& bs);
+	BoltzmannSumulation(const BoltzmannSumulation& bs): Nx(0), Ny(0), TAU(-1.0) { throw std::logic_error("MNE LEN' DELAT' COPY CONSTRUCTROR"); }
 
 	void init_sumulation()
 	{
 		memset(isBondary, false, Ny * Nx * sizeof(bool));
-		std::cout << "\n";
 		for (int i = 0; i < NL * Ny * Nx; i++)
 		{
 			cur_table[i] = 1.0 + (abs(rand()) % 1000) / 10000.0; 
-			//cur_table[i] = 1.0;
 			int coor = i % (Nx * Ny);
 			int y = coor / Nx;
 			int x = coor % Nx;
@@ -188,13 +186,7 @@ public:
 			/*g*/pixels[coor * 4 + 1] = g;
 			/*b*/pixels[coor * 4 + 2] = b;
 			/*a*/pixels[coor * 4 + 3] = 255;
-
-
-
 		}
-
-		int c = 85;
-
 	}
 
 
