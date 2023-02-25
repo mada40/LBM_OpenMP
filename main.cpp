@@ -1,19 +1,19 @@
 #include <SFML/Graphics.hpp>
 #include"BoltzmannSimulation.h"
-int const K = 100;
+int const K = 30;
 int const H = 9 * K, W = 16 * K;
-
+int const GIRD_SIZE = 3;
 
 int main()
 {
-    sf::RenderWindow window(sf::VideoMode(W, H), "SFML works!");
+    sf::RenderWindow window(sf::VideoMode(W * GIRD_SIZE, H * GIRD_SIZE), "SFML works!");
     //window.setFramerateLimit(60);
     sf::Clock clock;
     float lastTime = 0;
 
-    sf::Uint8* pixels = new sf::Uint8[W * H * 4];
+    sf::Uint8* pixels = new sf::Uint8[W * H * 4 * GIRD_SIZE * GIRD_SIZE];
     sf::Texture texture;
-    texture.create(W, H);
+    texture.create(W * GIRD_SIZE, H * GIRD_SIZE);
     sf::Sprite sprite(texture); // needed to draw the texture on screen
     
     BoltzmannSumulation bs(W, H);
@@ -32,7 +32,7 @@ int main()
         if (cnt % 1 == 0)
         {
 
-            bs.draw(pixels);
+            bs.draw(pixels,GIRD_SIZE);
             texture.update(pixels);
             window.draw(sprite);
             window.display();

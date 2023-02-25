@@ -28,7 +28,7 @@ class BoltzmannSumulation
 private:
 	const int Ny;
 	const int Nx;
-	const double TAU = 0.7;
+	const double TAU = 0.58;
 	float *new_table;
 	float *cur_table;
 	float *rho;
@@ -42,6 +42,7 @@ private:
 	
 
 	BoltzmannSumulation& operator = (const BoltzmannSumulation& other);
+	BoltzmannSumulation(const BoltzmannSumulation& bs);
 
 	void init_sumulation()
 	{
@@ -50,14 +51,12 @@ private:
 		for (int i = 0; i < NL * Ny * Nx; i++)
 		{
 			cur_table[i] = 1.0 + (abs(rand()) % 1000) / 10000.0; 
-			cur_table[i] = 1.0;
+			//cur_table[i] = 1.0;
 			int coor = i % (Nx * Ny);
 			int y = coor / Nx;
 			int x = coor % Nx;
 			if (i / (Nx * Ny) == 3)
-			{
-				cur_table[i] = 2.3;
-			}
+				cur_table[i] = 2.5;
 
 			int cylX = x - Nx* 2 / 3;
 			int cylY = y - Ny / 2;
@@ -137,16 +136,7 @@ private:
 	}
 
 public:
-	BoltzmannSumulation(const BoltzmannSumulation& bs) : Nx(bs.Nx), Ny(bs.Ny)
-	{
-		new_table = new float[NL * Ny * Nx];
-		cur_table = new float[NL * Ny * Nx];
-		rho = new float[Ny * Nx];
-		ux = new float[Ny * Nx];
-		uy = new float[Ny * Nx];
-		isBondary = new bool[Ny * Nx];
-		throw "d";
-	}
+	
 
 	BoltzmannSumulation(int _Nx, int _Ny) : Nx(_Nx), Ny(_Ny)
 	{
@@ -177,11 +167,14 @@ public:
 	}
 
 
-	void draw(sf::Uint8* pixels)
+	void draw(sf::Uint8* pixels, int gird_size)
 	{
 		#pragma omp parallel for num_threads(NUM_THREADS)
-		for (int i = 0; i < Nx * Ny; i++)
+		for (int coor = 0; coor < Nx * Ny * gird_size * gird_size; coor++)
 		{
+			int row = coor / (gird_size * Nx) / gird_size;
+			int col = coor % (gird_size * Nx) / gird_size;
+			int i = row * Nx + col;
 			double y = uy[i];
 			double x = ux[i];
 			double speed = std::sqrt(x * x + y * y) * 1250.0;
@@ -191,14 +184,16 @@ public:
 			r = clamp(r, 0, 255);
 			g = clamp(g, 0, 255);
 			b = clamp(b, 0, 255);
-			/*r*/pixels[i * 4 + 0] = r;
-			/*g*/pixels[i * 4 + 1] = g;
-			/*b*/pixels[i * 4 + 2] = b;
-			/*a*/pixels[i * 4 + 3] = 255;
+			/*r*/pixels[coor * 4 + 0] = r;
+			/*g*/pixels[coor * 4 + 1] = g;
+			/*b*/pixels[coor * 4 + 2] = b;
+			/*a*/pixels[coor * 4 + 3] = 255;
 
 
 
 		}
+
+		int c = 85;
 
 	}
 
