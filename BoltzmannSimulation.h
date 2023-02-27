@@ -35,26 +35,25 @@ private:
 	float* ux;
 	float* uy;
 	bool* isBondary;
-	double max_speed;
 	//812
 	//703
 	//654
 	
 
-	BoltzmannSumulation& operator = (const BoltzmannSumulation& other);
-	BoltzmannSumulation(const BoltzmannSumulation& bs): Nx(0), Ny(0), TAU(-1.0) { throw std::logic_error("MNE LEN' DELAT' COPY CONSTRUCTROR"); }
+	BoltzmannSumulation& operator = (const BoltzmannSumulation& other) { throw std::logic_error("MNE LEN' DELAT' ETOT OPERATOR"); }
+	
 
 	void init_sumulation()
 	{
 		memset(isBondary, false, Ny * Nx * sizeof(bool));
 		for (int i = 0; i < NL * Ny * Nx; i++)
 		{
-			cur_table[i] = 1.0 + (abs(rand()) % 1000) / 10000.0; 
+			cur_table[i] = 0.5 + (abs(rand()) % 1000) / 10000.0; 
 			int coor = i % (Nx * Ny);
 			int y = coor / Nx;
 			int x = coor % Nx;
 			if (i / (Nx * Ny) == 3)
-				cur_table[i] = 2.5;
+				cur_table[i] = 1.3;
 
 			int cylX = x - Nx* 2 / 3;
 			int cylY = y - Ny / 2;
@@ -107,13 +106,11 @@ private:
 		}
 		
 
-		max_speed = std::sqrt(ux[0] * ux[0] + uy[0] * uy[0]);
 		#pragma omp parallel for num_threads(NUM_THREADS)
 		for (int i = 0; i < Nx * Ny; i++)
 		{
 			ux[i] /= rho[i];
 			uy[i] /= rho[i];
-			max_speed = std::max(max_speed, 1.0*std::sqrt(ux[i] * ux[i] + uy[i] * uy[i]));
 			if (isBondary[i])
 			{
 				ux[i] = 0.0;
@@ -135,6 +132,12 @@ private:
 
 public:
 	
+	int get_W() { return Nx; }
+	int get_H() { return Ny; }
+
+	float* get_ux() { return ux; }
+	float* get_uy() { return uy; }
+
 
 	BoltzmannSumulation(int _Nx, int _Ny) : Nx(_Nx), Ny(_Ny)
 	{
@@ -145,6 +148,30 @@ public:
 		uy = new float[Ny * Nx];
 		isBondary = new bool[Ny * Nx];
 		init_sumulation();
+	}
+
+	BoltzmannSumulation(const BoltzmannSumulation& bs) : Nx(bs.Nx), Ny(bs.Ny), TAU(bs.TAU) 
+	{ 
+		float* tmp_new_table = new float[NL * Ny * Nx];
+		float* tmp_cur_table = new float[NL * Ny * Nx];
+		float* tmp_rho = new float[Ny * Nx];
+		float* tmp_ux = new float[Ny * Nx];
+		float* tmp_uy = new float[Ny * Nx];
+		bool* tmp_isBondary = new bool[Ny * Nx];
+
+		memcpy(tmp_new_table, bs.new_table, NL * Ny * Nx * sizeof(float));
+		memcpy(tmp_cur_table, bs.cur_table, NL * Ny * Nx * sizeof(float));	
+		memcpy(tmp_rho, bs.rho, Ny * Nx * sizeof(float));
+		memcpy(tmp_ux, bs.ux, Ny * Nx * sizeof(float));
+		memcpy(tmp_uy, bs.uy, Ny * Nx * sizeof(float));
+		memcpy(tmp_isBondary, bs.isBondary, Ny * Nx * sizeof(bool));
+
+		new_table = tmp_new_table;
+		cur_table = tmp_cur_table;
+		rho = tmp_rho;
+		ux = tmp_ux;
+		uy = tmp_uy;
+		isBondary = tmp_isBondary;
 	}
 
 	~BoltzmannSumulation()
@@ -164,30 +191,6 @@ public:
 		std::swap(cur_table, new_table);
 	}
 
-
-	void draw(sf::Uint8* pixels, int gird_size)
-	{
-		#pragma omp parallel for num_threads(NUM_THREADS)
-		for (int coor = 0; coor < Nx * Ny * gird_size * gird_size; coor++)
-		{
-			int row = coor / (gird_size * Nx) / gird_size;
-			int col = coor % (gird_size * Nx) / gird_size;
-			int i = row * Nx + col;
-			double y = uy[i];
-			double x = ux[i];
-			double speed = std::sqrt(x * x + y * y) * 1250.0;
-			int r = -speed * (speed - 384.0) / 128.0;
-			int g = -speed * (speed - 256.0) / 64.0;
-			int b = -(speed - 256.0) * (speed + 128.0) / 128.0;
-			r = clamp(r, 0, 255);
-			g = clamp(g, 0, 255);
-			b = clamp(b, 0, 255);
-			/*r*/pixels[coor * 4 + 0] = r;
-			/*g*/pixels[coor * 4 + 1] = g;
-			/*b*/pixels[coor * 4 + 2] = b;
-			/*a*/pixels[coor * 4 + 3] = 255;
-		}
-	}
 
 
 };
