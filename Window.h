@@ -70,7 +70,7 @@ public:
 		return window.isOpen();
 	}
 
-	void show()
+	void check_event()
 	{
 		sf::Event event;
 		while (window.pollEvent(event))
@@ -78,20 +78,33 @@ public:
 			if (event.type == sf::Event::Closed)
 				window.close();
 		}
+	}
 
+	void update()
+	{
 		sumulation.update();
+	}
 
-		draw();
-		texture.update(pixels);
-		window.draw(sprite);
-		window.display();
-
-
+	void update_FPS()
+	{
 		float currentTime = clock.getElapsedTime().asMilliseconds();
 		float deltatime = (currentTime - lastTime);
 		float fps = 1000.f / deltatime;
 		lastTime = currentTime;
 		window.setTitle(std::to_string(fps));
+	}
+
+	void show()
+	{
+		draw();
+		texture.update(pixels);
+		window.draw(sprite);
+		window.display();
+	}
+
+	void close()
+	{
+		window.close();
 	}
 
 	~Window()
