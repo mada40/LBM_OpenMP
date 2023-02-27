@@ -1,50 +1,18 @@
-#include <SFML/Graphics.hpp>
 #include"BoltzmannSimulation.h"
-int const K = 30;
-int const H = 9 * K, W = 16 * K;
-int const GIRD_SIZE = 3;
+#include"Window.h";
+int const H = 200, W = 400;
+int const GIRD_SIZE = 1;
 
-int main()
-{
-    sf::RenderWindow window(sf::VideoMode(W * GIRD_SIZE, H * GIRD_SIZE), "SFML works!");
-    //window.setFramerateLimit(60);
-    sf::Clock clock;
-    float lastTime = 0;
-
-    sf::Uint8* pixels = new sf::Uint8[W * H * 4 * GIRD_SIZE * GIRD_SIZE];
-    sf::Texture texture;
-    texture.create(W * GIRD_SIZE, H * GIRD_SIZE);
-    sf::Sprite sprite(texture); // needed to draw the texture on screen
-    
+int main(int argc, char** argv)
+{    
     BoltzmannSumulation bs(W, H);
-    int cnt = 0;
+
+    Window window(GIRD_SIZE, bs);
+    
     while (window.isOpen())
     {
-        cnt++;
-        sf::Event event;
-        while (window.pollEvent(event))
-        {
-            if (event.type == sf::Event::Closed)
-                window.close();
-        }
-
-        bs.update();
-        if (cnt % 1 == 0)
-        {
-
-            bs.draw(pixels,GIRD_SIZE);
-            texture.update(pixels);
-            window.draw(sprite);
-            window.display();
-        }
-
-        float currentTime = clock.getElapsedTime().asMilliseconds();
-        float deltatime = (currentTime - lastTime);
-        float fps = 1000.f / deltatime;
-        lastTime = currentTime;
-        window.setTitle(std::to_string(fps));
+        window.show();
     }
 
-    delete[] pixels;
     return 0;
 }
